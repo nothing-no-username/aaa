@@ -1,8 +1,12 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 
 const app = express()
+const Contact = require('./models/contact')
+
+app.use(express.static('dist'))
 
 morgan.token('data', (req, res) => {
 	if (req.method === 'POST') {
@@ -23,6 +27,7 @@ app.use(morgan((tokens, req, res) => {
 }))
 app.use(cors())
 
+/*
 let persons = [
 	{
 		"id": 1,
@@ -45,13 +50,18 @@ let persons = [
 		"number": "39-23-6423122"
 	}
 ]
+*/
+let persons = []
 
 app.get('/', (request, response) => {
 	response.send('funciona')
 })
 
 app.get('/api/persons', (request, response) => {
-	response.json(persons)
+	Contact.find({}).then(contacts => {
+		persons = contacts
+		response.json(contacts)
+	})
 })
 
 app.get('/info', (request, response) => {
@@ -60,16 +70,22 @@ app.get('/info', (request, response) => {
 })
 
 app.get('/api/persons/:id', (request, response) => {
-	const id = Number(request.params.id)
-	const person = persons.find(p => p.id === id)
+	//const id = Number(request.params.id)
+	//const person = persons.find(p => p.id === id)
 	//console.log('id:', id, 'person:', person)
+	Contact.findById(request.params.id).then(person => {
+		console.log(person)
+		response.json(person)
+	})//.catch(response.status(404).end())
 
+	/*
 	if (person) {
 		response.json(person)
 	}
 	else {
 		response.status(404).end()
 	}
+	*/
 })
 
 app.delete('/api/persons/:id', (request, response) => {
@@ -96,15 +112,15 @@ app.post('/api/persons', (request, response) => {
 		}
 	}
 
-	const person = {
+	const person = new Contact({
 		name: body.name,
 		number: body.number,
-		id: Math.floor(Math.random() * 1000000000)
-	}
+	})
 
-	persons = persons.concat(person)
-
-	response.json(person)
+	person.save().then(savedPerson => {
+		persons.push(savedPerson)
+		response.json(savedPerson)
+	})
 })
 
 
