@@ -15,6 +15,7 @@ morgan.token('data', (req, res) => {
 })
 
 app.use(express.json())
+
 app.use(morgan((tokens, req, res) => {
 	return [
 		tokens.method(req, res),
@@ -60,6 +61,7 @@ app.get('/', (request, response) => {
 app.get('/api/persons', (request, response) => {
 	Contact.find({}).then(contacts => {
 		persons = contacts
+		console.log('personas: \n', persons)
 		response.json(contacts)
 	})
 })
@@ -69,14 +71,19 @@ app.get('/info', (request, response) => {
 	response.send(`<p>Phonebook has info for ${persons.length} people</p><p>${time}</p>`)
 })
 
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
 	//const id = Number(request.params.id)
 	//const person = persons.find(p => p.id === id)
 	//console.log('id:', id, 'person:', person)
 	Contact.findById(request.params.id).then(person => {
 		console.log(person)
-		response.json(person)
-	})//.catch(response.status(404).end())
+
+		if (person) {
+			response.json(person)
+		}
+
+		response.status(404).end()
+	}).catch(error => next(error))
 
 	/*
 	if (person) {
@@ -88,16 +95,20 @@ app.get('/api/persons/:id', (request, response) => {
 	*/
 })
 
-app.delete('/api/persons/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
 	const id = Number(request.params.id)
 	persons = persons.filter(p => p.id !== id)
 
-	response.status(204).end()
+	//response.status(204).end()
+
+	console.log('personas: \n', persons)
+
+	Contact.findByIdAndDelete(request.params.id).then(() => response.status(204).end()).catch(error => next(error))
 })
 
 app.post('/api/persons', (request, response) => {
 	const body = request.body
-	console.log('request:', request.headers)
+	//console.log('request:', request.headers)
 
 	if (!body.name) {
 		return response.status(400).json({ error: 'name missing' })
@@ -119,13 +130,43 @@ app.post('/api/persons', (request, response) => {
 
 	person.save().then(savedPerson => {
 		persons.push(savedPerson)
+		console.log('personas: \n', persons)
 		response.json(savedPerson)
 	})
 })
 
+app.put('/api/persons/:id', (request, response, next) => {
+	console.log('id para el put:', request.params.id)
+	const person = {
+		name: request.body.name,
+		number: request.body.number
+	}
 
+	Contact.findByIdAndUpdate(request.params.id, person, { new: true })
+		.then(updatedContact => response.json(updatedContact))
+		.catch(error => next(error))
+})
 
-const PORT = 3001
+const errorHandler = (error, request, response, next) => {
+	console.log(error.message)
+	console.log(request)
+
+	if (error.name === 'CastError') {
+		return response.status(400).send({ error: 'malformed id' })
+	}
+
+	next(error)
+}
+
+app.use(errorHandler)
+
+const unknownEndpoint = (request, response) => {
+	response.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.use(unknownEndpoint)
+
+const PORT = process.env.PORT || 3001
 
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`)
