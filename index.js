@@ -61,7 +61,7 @@ app.get('/', (request, response) => {
 app.get('/api/persons', (request, response) => {
     Contact.find({}).then(contacts => {
         persons = contacts
-        console.log('personas: \n', persons)
+        //console.log('personas: \n', persons)
         response.json(contacts)
     })
 })
@@ -76,7 +76,7 @@ app.get('/api/persons/:id', (request, response, next) => {
     //const person = persons.find(p => p.id === id)
     //console.log('id:', id, 'person:', person)
     Contact.findById(request.params.id).then(person => {
-        console.log(person)
+        //console.log(person)
 
         if (person) {
             response.json(person)
@@ -101,7 +101,7 @@ app.delete('/api/persons/:id', (request, response, next) => {
 
     //response.status(204).end()
 
-    console.log('personas: \n', persons)
+    //console.log('personas: \n', persons)
 
     Contact.findByIdAndDelete(request.params.id).then(() => response.status(204).end()).catch(error => next(error))
 })
@@ -119,14 +119,14 @@ app.post('/api/persons', (request, response, next) => {
     person.save()
         .then(savedPerson => {
             persons.push(savedPerson)
-            console.log('personas: \n', persons)
+            //console.log('personas: \n', persons)
             response.json(savedPerson)
         })
         .catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (request, response, next) => {
-    console.log('id para el put:', request.params.id)
+    //console.log('id para el put:', request.params.id)
     const person = {
         name: request.body.name,
         number: request.body.number
